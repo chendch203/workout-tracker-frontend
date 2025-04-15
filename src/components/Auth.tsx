@@ -1,23 +1,22 @@
 import React, { useState } from 'react';
 import {
     Box,
-    Paper,
-    TextField,
     Button,
+    TextField,
     Typography,
+    Paper,
     Tab,
     Tabs,
     Alert,
 } from '@mui/material';
 import { api } from '../services/api';
-import { User } from '../types/auth';
 
 interface AuthProps {
-    onAuthSuccess: (user: User) => void;
+    onAuthSuccess: (user: { token: string; username: string }) => void;
 }
 
 export const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
-    const [tab, setTab] = useState(0);
+    const [isLogin, setIsLogin] = useState(true);
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -27,51 +26,89 @@ export const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
         setError('');
 
         try {
-            if (tab === 0) { // Login
-                const user = await api.login({ username, password });
-                onAuthSuccess(user);
-            } else { // Register
-                await api.register({ username, password });
-                // 注册成功后自动登录
-                const user = await api.login({ username, password });
-                onAuthSuccess(user);
+            if (isLogin) {
+                const response = await api.login({ username, password });
+                onAuthSuccess({ token: response.token, username });
+            } else {
+                const response = await api.register({ username, password });
+                onAuthSuccess({ token: response.token, username });
             }
         } catch (err) {
-            setError(err instanceof Error ? err.message : '发生错误');
+            setError(err instanceof Error ? err.message : '操作失败，请重试');
         }
     };
 
     return (
-        <Paper elevation={3} sx={{ p: 3, maxWidth: 400, mx: 'auto', mt: 4 }}>
-            <Tabs value={tab} onChange={(_, newValue) => setTab(newValue)} centered sx={{ mb: 3 }}>
-                <Tab label="登录" />
-                <Tab label="注册" />
-            </Tabs>
+        <Box
+            sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: '100vh',
+                bgcolor: 'background.default',
+                py: 3,
+            }}
+        >
+            <Paper
+                elevation={3}
+                sx={{
+                    p: 4,
+                    width: '100%',
+                    maxWidth: 400,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 3,
+                }}
+            >
+                <Typography variant="h4" component="h1" align="center" gutterBottom>
+                    运动记录应用
+                </Typography>
 
-            {error && (
-                <Alert severity="error" sx={{ mb: 2 }}>
-                    {error}
-                </Alert>
-            )}
+                <Tabs
+                    value={isLogin ? 0 : 1}
+                    onChange={(_, value) => setIsLogin(value === 0)}
+                    centered
+                >
+                    <Tab label="登录" />
+                    <Tab label="注册" />
+                </Tabs>
 
-            <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <TextField
-                    label="用户名"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    required
-                />
-                <TextField
-                    label="密码"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                />
-                <Button type="submit" variant="contained">
-                    {tab === 0 ? '登录' : '注册'}
-                </Button>
-            </Box>
-        </Paper>
+                {error && (
+                    <Alert severity="error" sx={{ mt: 2 }}>
+                        {error}
+                    </Alert>
+                )}
+
+                <Box component="form" onSubmit={handleSubmit}>
+                    <TextField
+                        fullWidth
+                        label="用户名"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        margin="normal"
+                        required
+                    />
+                    <TextField
+                        fullWidth
+                        label="密码"
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        margin="normal"
+                        required
+                    />
+                    <Button
+                        type="submit"
+                        variant="contained"
+                        color="primary"
+                        fullWidth
+                        sx={{ mt: 3 }}
+                    >
+                        {isLogin ? '登录' : '注册'}
+                    </Button>
+                </Box>
+            </Paper>
+        </Box>
     );
 };
